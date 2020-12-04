@@ -9,7 +9,7 @@
 		"save_steps": 500,
 		"output_mode" : "classification"
 	},
-	"ner": 
+	"mrpc": 
 	{
 		"learning_rate": 3e-5,
 		"weight_decay" : 0.01,
@@ -19,7 +19,7 @@
 		"save_steps": 500,
 		"output_mode" : "classification"
 	},
-	"pos": 
+	"rte": 
 	{
 		"learning_rate": 3e-5,
 		"weight_decay" : 0.01,

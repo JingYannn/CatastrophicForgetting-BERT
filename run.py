@@ -83,7 +83,7 @@ def load_examples(args, task, tokenizer, evaluate=False):
 	return dataset
 
 
-def train(args, train_dataset, all_tasks, task_num, model, models, tokenizer, accuracy_matrix):
+def train(args, train_dataset, all_tasks, task_num, model, models, tokenizer, tokenizers, accuracy_matrix):
 	train_sampler = RandomSampler(train_dataset)
 	train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
 	t_total = len(train_dataloader) * args.num_train_epochs
@@ -191,10 +191,7 @@ def train(args, train_dataset, all_tasks, task_num, model, models, tokenizer, ac
 	if args.eval_during_training:
 		file_name = 'cur_task_' + all_tasks[task_num] + 'baseline.txt'
 		with open(file_name, "w") as file:
-			arr = []
-			arr.append(loss_value[0])
-			arr.append(loss_value[1])
-			arr.append(eval_steps)
+			arr = [loss_value[0], loss_value[1], eval_steps]
 			for i in range(task_num):
 				arr.append(prev_accs[i])
 			file.write(str(arr))
@@ -209,27 +206,26 @@ def train(args, train_dataset, all_tasks, task_num, model, models, tokenizer, ac
 
 	for i in range(len(all_tasks)):
 		part_name = partial_name(args)
+		tmp_model = models[i][1]
+		tmp_model.load_state_dict(
+			torch.load(os.path.join(args.output_dir, part_name, "bert_parameters_" + str(task_num) + ".pt")),
+			strict=False)
+		tmp_model.load_state_dict(
+			torch.load(os.path.join(args.output_dir, part_name, "task_parameters_" + str(i) + ".pt")),
+			strict=False)
+		# model.load_state_dict(torch.load(os.path.join(args.output_dir, part_name, "task_parameters_" + str(i) + ".pt")),
+		# 					  strict=False)
 		# Previous tasks
 		if i < task_num:
-			models[i][1].load_state_dict(
-				torch.load(os.path.join(args.output_dir, part_name, "bert_parameters_" + str(task_num) + ".pt")),
-				strict=False)
-			models[i][1].load_state_dict(
-				torch.load(os.path.join(args.output_dir, part_name, "task_parameters_" + str(i) + ".pt")),
-				strict=False)
-			results, accuracy_matrix, _ = evaluate(args, model, all_tasks[i], tokenizer, accuracy_matrix, task_num, i,
+			results, accuracy_matrix, _ = evaluate(args, tmp_model, all_tasks[i], tokenizers[all_tasks[i]],
+												   accuracy_matrix, task_num, i,
 												   True,
 												   "Previous Task (Continual)")
 
 		# Future tasks
-		elif (i > task_num):
-			models[i][1].load_state_dict(
-				torch.load(os.path.join(args.output_dir, part_name, "bert_parameters_" + str(task_num) + ".pt")),
-				strict=False)
-			models[i][1].load_state_dict(
-				torch.load(os.path.join(args.output_dir, part_name, "task_parameters_" + str(i) + ".pt")),
-				strict=False)
-			results, accuracy_matrix, _ = evaluate(args, model, all_tasks[i], tokenizer, accuracy_matrix, task_num, i,
+		elif i > task_num:
+			results, accuracy_matrix, _= evaluate(args, tmp_model, all_tasks[i], tokenizers[all_tasks[i]],
+												   accuracy_matrix, task_num, i,
 												   True,
 												   "Future Task (Continual)")
 
@@ -279,15 +275,9 @@ def evaluate(args, model, task, tokenizer, accuracy_matrix, train_task_num, curr
 		pad_token_label_id = CrossEntropyLoss().ignore_index
 
 		tags_vals = task_processors[task]().get_labels()
-		# label_map = {}
-		# for i, label in enumerate(tags_vals):
-		# 	label_map[label] = i
-
-		# print(label_map)
 
 		label_map = {i: label for i, label in enumerate(tags_vals)}
-
-		# print(label_map2)
+		print(label_map)
 
 		out_label_list = [[] for _ in range(out_label_ids.shape[0])]
 		preds_list = [[] for _ in range(out_label_ids.shape[0])]
@@ -295,12 +285,6 @@ def evaluate(args, model, task, tokenizer, accuracy_matrix, train_task_num, curr
 		for i in range(out_label_ids.shape[0]):
 			for j in range(out_label_ids.shape[1]):
 				if out_label_ids[i, j] != pad_token_label_id:
-					# print(pad_token_label_id)
-					# print(CrossEntropyLoss().ignore_index)
-					# print(out_label_ids[i, j])
-					# print(out_label_ids[i][j])
-					# print(label_map[out_label_ids[i][j]])
-					# print(out_label_list[i])
 					out_label_list[i].append(label_map[out_label_ids[i][j]])
 					preds_list[i].append(label_map[preds[i][j]])
 
@@ -313,6 +297,34 @@ def evaluate(args, model, task, tokenizer, accuracy_matrix, train_task_num, curr
 				"f1": f1_score(out_label_list, preds_list),
 				"classification report": classification_report(out_label_list, preds_list),
 			}
+
+			if train_task_num == 0:
+				eval_result_file = os.path.join(args.output_dir, "eval_results_" + str(task) + "1" + ".txt")
+			else:
+				eval_result_file = os.path.join(args.output_dir, "eval_results_" + str(task) + "2" + ".txt")
+			with open(eval_result_file, "w") as writer:
+				writer.write("index\tlabel\tprediction\n")
+				for index1, (item1, item2) in enumerate(zip(out_label_list, preds_list)):
+					for index2, (label, pred) in enumerate(zip(item1, item2)):
+						print(label, pred)
+						if label != pad_token_label_id and pred != pad_token_label_id:
+							if index2 == 0:
+								# label = label_map[label]
+								# pred = label_map[pred]
+								writer.write(f"{index1}\t{label}\t{pred}\n")
+							else:
+								# label = label_map[label]
+								# pred = label_map[pred]
+								writer.write(f"\t{label}\t{pred}\n")
+					writer.write("\n")
+			writer.close()
+
+				# for index, (item1, item2) in enumerate(zip(out_label_ids, preds)):
+				# 	item1 = label_map[str(item1)]
+				# 	item2 = label_map[str(item2)]
+				# 	writer.write(f"{index}\t{item1}\t{item2}\n")
+			# writer.close()
+
 		elif task == "pos":
 			results = {
 				"loss": eval_loss,
@@ -321,6 +333,14 @@ def evaluate(args, model, task, tokenizer, accuracy_matrix, train_task_num, curr
 				"recall": recall_score(out_label_list, preds_list),
 				"f1": f1_score(out_label_list, preds_list),
 			}
+			# eval_result_file = os.path.join(args.output_dir, "eval_results_" + str(task) + ".txt")
+			# with open(eval_result_file, "w") as writer:
+			# 	writer.write("index\tlabel\tprediction\n")
+			# 	for index, (item1, item2) in enumerate(zip(preds, out_label_ids)):
+			# 		item1 = label_map[str(item1)]
+			# 		item2 = label_map[str(item2)]
+			# 		writer.write(f"{index}\t{item1}\t{item2}\n")
+			# writer.close()
 
 		result = results["acc"]
 
@@ -338,17 +358,17 @@ def evaluate(args, model, task, tokenizer, accuracy_matrix, train_task_num, curr
 			for i, label in enumerate(tags_vals):
 				label_map[label] = i
 
-			if current_task_num == 0:
-				eval_result_file = os.path.join(args.output_dir, "eval_results_" + str(task) + "1" + ".txt")
-			else:
-				eval_result_file = os.path.join(args.output_dir, "eval_results_" + str(task) + "2" + ".txt")
-			with open(eval_result_file, "w") as writer:
-				writer.write("index\tlabel\tprediction\n")
-				for index, (item1, item2) in enumerate(zip(preds, out_label_ids)):
-					item1 = label_map[str(item1)]
-					item2 = label_map[str(item2)]
-					writer.write(f"{index}\t{item1}\t{item2}\n")
-			writer.close()
+			# if train_task_num == 0:
+			# 	eval_result_file = os.path.join(args.output_dir, "eval_results_" + str(task) + "1" + ".txt")
+			# else:
+			# 	eval_result_file = os.path.join(args.output_dir, "eval_results_" + str(task) + "2" + ".txt")
+			# with open(eval_result_file, "w") as writer:
+			# 	writer.write("index\tlabel\tprediction\n")
+			# 	for index, (item1, item2) in enumerate(zip(out_label_ids, preds)):
+			# 		item1 = label_map[str(item1)]
+			# 		item2 = label_map[str(item2)]
+			# 		writer.write(f"{index}\t{item1}\t{item2}\n")
+			# writer.close()
 
 		if task == 'cola':
 			result = result['mcc']
@@ -385,17 +405,16 @@ def main():
 	for key in args.task_params:
 		configs[key] = AutoConfig.from_pretrained(args.model_name_or_path,
 												  num_labels=num_label_list[key],
-												  finetuning_task=key,
-                          id2label={str(i): label for i, label in enumerate(label_lists[key])},
-                          label2id={label: i for i, label in enumerate(label_lists[key])},
+												  id2label={str(i): label for i, label in enumerate(label_lists[key])},
+												  label2id={label: i for i, label in enumerate(label_lists[key])},
 												  )
 
 	# Tokenizer
 	tokenizers = {}
 	for key in args.task_params:
 		tokenizers[key] = AutoTokenizer.from_pretrained(args.model_name_or_path,
-												  do_lower_case=args.do_lower_case,
-												  )
+														do_lower_case=args.do_lower_case,
+														)
 
 	# Continual learning
 	n = len(configs)
@@ -428,7 +447,7 @@ def main():
 		new_args = convert_dict(args.task_params[tasks[i]], args)
 		train_dataset = load_examples(args, tasks[i], tokenizers[tasks[i]], evaluate=False)
 		global_step, tr_loss, accuracy_matrix = train(
-			new_args, train_dataset, tasks, i, models[i][1], models, tokenizers[tasks[i]], accuracy_matrix
+			new_args, train_dataset, tasks, i, models[i][1], models, tokenizers[tasks[i]], tokenizers, accuracy_matrix
 		)
 		logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 

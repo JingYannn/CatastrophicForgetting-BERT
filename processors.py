@@ -82,9 +82,9 @@ def convert_examples_to_features(
 	if task == "ner" or task == "pos":
 		# Use cross entropy ignore index as padding label id so that only real label ids contribute to the loss later
 		pad_token_label_id = CrossEntropyLoss().ignore_index
-		print(pad_token_label_id)
+		# print(pad_token_label_id)
 		for (ex_index, example) in enumerate(examples):
-
+			# print("ex_index:", ex_index)
 			tokens = []
 			label_ids = []
 			for word, label in zip(example.text_a.split(), example.labels):
@@ -97,7 +97,7 @@ def convert_examples_to_features(
 					label_ids.extend([label_map[label]] + [pad_token_label_id] * (len(word_tokens) - 1))
 
 			# Account for [CLS] and [SEP] with "- 2" and with "- 3" for RoBERTa.
-			special_tokens_count = tokenizer.num_added_tokens()#num_special_tokens_to_add()
+			special_tokens_count = tokenizer.num_special_tokens_to_add()#num_added_tokens()  # num_special_tokens_to_add()
 			if len(tokens) > max_seq_length - special_tokens_count:
 				tokens = tokens[: (max_seq_length - special_tokens_count)]
 				label_ids = label_ids[: (max_seq_length - special_tokens_count)]
@@ -164,7 +164,8 @@ def convert_examples_to_features(
 		for (ex_index, example) in enumerate(examples):
 
 			inputs = tokenizer.encode_plus(
-				example.text_a, example.text_b, add_special_tokens=True, max_length=max_seq_length, return_token_type_ids=True,
+				example.text_a, example.text_b, add_special_tokens=True, max_length=max_seq_length,
+				return_token_type_ids=True,
 			)
 			input_ids, token_type_ids = inputs["input_ids"], inputs["token_type_ids"]
 
@@ -175,7 +176,8 @@ def convert_examples_to_features(
 			attention_mask = attention_mask + ([0] * padding_length)
 			token_type_ids = token_type_ids + ([0] * padding_length)
 
-			assert len(input_ids) == max_seq_length, "Error with input length {} vs {}".format(len(input_ids), max_seq_length)
+			assert len(input_ids) == max_seq_length, "Error with input length {} vs {}".format(len(input_ids),
+																							   max_seq_length)
 			assert len(attention_mask) == max_seq_length, "Error with input length {} vs {}".format(
 				len(attention_mask), max_seq_length
 			)
@@ -263,12 +265,13 @@ class NerProcessor(DataProcessor):
 		)
 
 	def get_labels(self):
-		return ["O", "B-MISC", "I-MISC", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC"]#["O", "B-MISC", "I-MISC", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC", "[CLS]", "[SEP]", "X"]
+		return ["O", "B-MISC", "I-MISC", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC",
+				"I-LOC"]  # ["O", "B-MISC", "I-MISC", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC", "[CLS]", "[SEP]", "X"]
 
 	def _create_examples(self, lines, set_type):
 		examples = []
 		for i, (sentence, labels) in enumerate(lines):
-			guid = "%s-%s" % (set_type, i+1)
+			guid = "%s-%s" % (set_type, i + 1)
 			text = ' '.join(sentence)
 			labels = labels
 			examples.append(InputExample(guid=guid, text_a=text, text_b=None, labels=labels))
@@ -311,10 +314,10 @@ class PosProcessor(DataProcessor):
 		)
 
 	def get_labels(self):
+		# return ["ADJ", "ADP", "ADV", "AUX", "CCONJ", "DET", "INTJ", "NOUN", "NUM", "PART", "PRON", "PROPN", "PUNCT",
+		# 		"SCONJ", "SYM", "VERB", "[CLS]", "[SEP]", "X"]
 		return ["ADJ", "ADP", "ADV", "AUX", "CCONJ", "DET", "INTJ", "NOUN", "NUM", "PART", "PRON", "PROPN", "PUNCT",
 				"SCONJ", "SYM", "VERB", "[CLS]", "[SEP]", "_", "X"]
-		# return ["ADJ", "ADP", "ADV", "AUX", "CCONJ", "DET", "INTJ", "NOUN", "NUM", "PART", "PRON", "PROPN", "PUNCT",
-		# 		"SCONJ", "SYM", "VERB", "[CLS]", "[SEP]", "_"]
 
 	def _create_examples(self, lines, set_type):
 		examples = []
@@ -387,9 +390,45 @@ class MrpcProcessor(DataProcessor):
 			examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
 		return examples
 
+
+class RteProcessor(DataProcessor):
+	"""Processor for the RTE data set (GLUE version)."""
+
+	def read_data_from_file(self, data_dir, quotechar=None):
+		"""Read a tab separated value file."""
+		with open(data_dir, "r", encoding="utf-8-sig") as f:
+			return list(csv.reader(f, delimiter="\t", quotechar=quotechar))
+
+	def get_train_examples(self, data_dir):
+		"""See base class."""
+		return self._create_examples(self.read_data_from_file(os.path.join(data_dir, "train.tsv")), "train")
+
+	def get_dev_examples(self, data_dir):
+		"""See base class."""
+		return self._create_examples(self.read_data_from_file(os.path.join(data_dir, "dev.tsv")), "dev")
+
+	def get_labels(self):
+		"""See base class."""
+		return ["entailment", "not_entailment"]
+
+	def _create_examples(self, lines, set_type):
+		"""Creates examples for the training and dev sets."""
+		examples = []
+		for (i, line) in enumerate(lines):
+			if i == 0:
+				continue
+			guid = "%s-%s" % (set_type, line[0])
+			text_a = line[1]
+			text_b = line[2]
+			label = line[-1]
+			examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+		return examples
+
+
 task_processors = {
 	"cola": ColaProcessor,
 	"mrpc": MrpcProcessor,
 	"ner": NerProcessor,
 	"pos": PosProcessor,
+	"rte": RteProcessor,
 }
