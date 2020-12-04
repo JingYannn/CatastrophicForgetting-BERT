@@ -23,3 +23,5 @@ Please use `run_cl.sh` to fine-tune BERT on several tasks sequentially. The orde
 
 ## TODO
 - fix bug of POS (UD).
+
+- self training.
