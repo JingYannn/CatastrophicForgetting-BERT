@@ -4,7 +4,7 @@ CF problem in BERT. Support contiual fine-tuning BERT on sequence classification
 ## Package
 - PyTorch 1.7
 - python 3.6.9
-- Transformers v4.1.0
+- Transformers 4.1.0
 - conllu
 - seqeval
 - tqdm
