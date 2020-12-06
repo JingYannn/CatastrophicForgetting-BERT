@@ -2,12 +2,12 @@
 CF problem in BERT. Support contiual fine-tuning BERT on sequence classification tasks(ColA, MRPC and RTE) and token classification tasks(CoNLL-2003, UD).
 
 ## Package
-- PyTorch 1.7
 - python 3.6.9
-- Transformers 4.1.0
-- conllu
-- seqeval
-- tqdm
+- PyTorch 1.7.0+cu101
+- Transformers 4.1.0.dev0
+- conllu 4.2.1
+- seqeval 1.2.2
+- tqdm 4.41.1
 
 ## Code
 - `run.py`: the main code to run the training-evaluation code.
