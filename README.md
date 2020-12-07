@@ -5,16 +5,20 @@ CF problem in BERT. Support contiual fine-tuning BERT on sequence classification
 
 ### Experiment1 : NER(10000) -> CoLA -> MRPC
 
-#### result
+#### Result
 
-**Accuracy Matrix**
+##### Accuracy Matrix
 
+| CoNLL-2003  | CoLA  | MRPC |
+| :------------ |:---------------:| -----:|
 | 0.9883139      | -0.0207027  | 0.3112745 |
 | 0.9802894      | 0.5550197        |   0.4338235 |
 | 0.9614164 | 0.3715264        |    0.8578431 |
 
-**Transfer Matrix**
+##### Transfer Matrix
 
+| CoNLL-2003  | CoLA  | MRPC |
+| :------------ |:---------------:| -----:|
 | 0.      | -0.5757224  | -0.5465686 |
 | -0.0080245      | 0.        |   -0.4240196 |
 | -0.0268975 | -0.1834933        |    0. |
@@ -33,17 +37,21 @@ CF problem in BERT. Support contiual fine-tuning BERT on sequence classification
 
 ### Experiment2: CoLA -> MRPC -> NER
 
-#### result 
+#### Result 
 
-**Accuracy Matrix**
+##### Accuracy Matrix
 
+| CoLA  | MRPC  | CoNLL-2003 |
+| :------------ |:---------------:| -----:|
 | 0.5699305      | 0.6838235  | 0.2488363 |
 | 0.5528801      | 0.8455882        |   0.3384493 |
 | 0.3818496 | 0.7647059        |    0.9872816 |
 
 
-**Transfer Matrix**
+##### Transfer Matrix
 
+| CoLA  | MRPC  | CoNLL-2003 |
+| :------------ |:---------------:| -----:|
 | 0.      | -0.1617647  | -0.7384453 |
 | -0.0170504      | 0.        |   -0.6488323 |
 | -0.1880809 | -0.0808823        |    0. |
