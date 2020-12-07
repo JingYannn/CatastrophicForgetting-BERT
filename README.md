@@ -1,6 +1,24 @@
 # CatastrophicForgetting-BERT
 CF problem in BERT. Support contiual fine-tuning BERT on sequence classification tasks(ColA, MRPC and RTE) and token classification tasks(CoNLL-2003, UD).
 
+## Compare the prediction results of CoLA after continual fine-tuning
+
+### CoLA -> MRPC -> NER
+
+### CoLA: label 0(ungrammatical), label 1(grammatical)
+
+**cnt1** : indexes predicted correctly in the first time => 860
+
+**cnt2** : indexes predicted correctly in the second time => 789
+
+**cnt3** : indexes predicted correctly in the first time but predicted uncorrectly in the second time (forget) => 118
+  - **cnt3_0** : how many label '0' are forgot? => 117
+  - **cnt3_1** : how many label '1' are forgot? => 1
+
+**cnt4** : indexes predicted correctly in the second time but predicted uncorrectly in the first time => 47
+  - **cnt4_0** : how many label '0' are learned? => 0
+  - **cnt4_1** : how many label '1' are learned? => 47
+
 ## Package
 - python 3.6.9
 - PyTorch 1.7.0+cu101
