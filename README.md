@@ -3,8 +3,45 @@ CF problem in BERT. Support contiual fine-tuning BERT on sequence classification
 
 ## Compare the prediction results of CoLA after continual fine-tuning
 
-### CoLA -> MRPC -> NER
+### NER(10000) -> CoLA -> MRPC
 
+**Accuracy Matrix**
+
+[[ 0.9883139 -0.0207027  0.3112745]
+ [ 0.9802894  0.5550197  0.4338235]
+ [ 0.9614164  0.3715264  0.8578431]]
+
+**Transfer Matrix**
+Future Transfer => Upper Triangular Matrix  ||  Backward Transfer => Lower Triangular Matrix
+
+[[ 0.        -0.5757224 -0.5465686]
+ [-0.0080245  0.        -0.4240196]
+ [-0.0268975 -0.1834933  0.       ]]
+ 
+### NER: "O", "B-MISC", "I-MISC", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC"; avg. seq. length = 15.797846153846153
+**cnt1** : how many times is each label correctly predicted in the first time? [42568, 836, 286, 1812, 1287, 1258, 682, 1781, 233]
+
+**cnt2** : how many times is each label correctly predicted in the second time? [42537, 712, 240, 1176, 1168, 1144, 670, 1516, 199]
+
+**cnt3** : how many times is each label correctly predicted in the first time but uncorrectly in the second time? [107, 140, 50, 637, 120, 119, 28, 267, 34]
+
+**cnt4** : how many times is each label correctly predicted in the second time but uncorrectly in the first time? [76, 16, 4, 1, 1, 5, 16, 2, 0]
+
+### CoLA -> MRPC -> NER(10000)
+
+**Accuracy Matrix**
+
+[[0.5699305 0.6838235 0.2488363]
+ [0.5528801 0.8455882 0.3384493]
+ [0.3818496 0.7647059 0.9872816]]
+
+**Transfer Matrix**
+Future Transfer => Upper Triangular Matrix  ||  Backward Transfer => Lower Triangular Matrix
+
+[[ 0.        -0.1617647 -0.7384453]
+ [-0.0170504  0.        -0.6488323]
+ [-0.1880809 -0.0808823  0.       ]]
+ 
 ### CoLA: label 0(ungrammatical), label 1(grammatical)
 
 **cnt1** : indexes predicted correctly in the first time => 860
