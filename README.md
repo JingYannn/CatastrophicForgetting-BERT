@@ -5,7 +5,7 @@ CF problem in BERT. Support contiual fine-tuning BERT on sequence classification
 
 ### Experiment1 : NER(10000) -> CoLA -> MRPC
 
-#### Result
+- **Result**
 
 ##### Accuracy Matrix
 
@@ -24,7 +24,9 @@ CF problem in BERT. Support contiual fine-tuning BERT on sequence classification
 | -0.0268975 | -0.1834933        |    0. |
 
 > Explanation: 
+
 > CoNLL-2003 's label lists: "O", "B-MISC", "I-MISC", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC";
+
 > avg. sequence length = 15.797846153846153, select the first 10000 sequences from the train set to do fine-tuning 
 
 - **cnt1** : how many times is each label correctly predicted in the first time? [42568, 836, 286, 1812, 1287, 1258, 682, 1781, 233]
@@ -37,7 +39,7 @@ CF problem in BERT. Support contiual fine-tuning BERT on sequence classification
 
 ### Experiment2: CoLA -> MRPC -> NER
 
-#### Result 
+- **Result**
 
 ##### Accuracy Matrix
 
