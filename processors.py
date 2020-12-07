@@ -15,12 +15,13 @@ logger = logging.getLogger(__name__)
 class InputExample(object):
 	""" A single training/test example for classification. """
 
-	def __init__(self, guid, text_a, text_b, label=None, labels=None):
+	def __init__(self, id, guid, text_a, text_b, label=None, labels=None):
 		"""
 		Constructs a InputExample.
 
 		Args:
-			guid: Unique id for the example.
+			id: Unique id for the example. (only index)
+			guid: Unique id for the example. (determine if it is from train set or dev set)
 			text_a: string. The untokenized text of the first sequence. For single
 				sequence tasks, only this sequence must be specified.
 			text_b: (Optional) string. The untokenized text of the second sequence.
@@ -32,7 +33,7 @@ class InputExample(object):
 				This should be specified for train and dev examples, but not for 
 				test examples. Only must be specified for token classification tasks.
 		"""
-
+		self.id = id
 		self.guid = guid
 		self.text_a = text_a
 		self.text_b = text_b
@@ -43,11 +44,13 @@ class InputExample(object):
 class InputFeatures(object):
 	"""A single set of features of data."""
 
-	def __init__(self, input_ids, attention_mask=None, token_type_ids=None, label_id=None, label_ids=None):
+	def __init__(self, sequence_id=None, input_ids=None, attention_mask=None, token_type_ids=None, label_id=None,
+				 label_ids=None):
 		"""
 		Constructs a InputFeature.
 
 		Args:
+			sequence_id: Indices of input sequence.
 		    input_ids: Indices of input sequence tokens in the vocabulary.
 		    attention_mask: Mask to avoid performing attention on padding token indices.
 		        Mask values selected in ``[0, 1]``:
@@ -58,7 +61,7 @@ class InputFeatures(object):
 		    label_ids: Indices of labels corresponding to the input sequence. Only for token 
 		    	classification tasks it must be specified.
 		"""
-
+		self.sequence_id = sequence_id
 		self.input_ids = input_ids
 		self.attention_mask = attention_mask
 		self.token_type_ids = token_type_ids
@@ -97,7 +100,7 @@ def convert_examples_to_features(
 					label_ids.extend([label_map[label]] + [pad_token_label_id] * (len(word_tokens) - 1))
 
 			# Account for [CLS] and [SEP] with "- 2" and with "- 3" for RoBERTa.
-			special_tokens_count = tokenizer.num_special_tokens_to_add()#num_added_tokens()  # num_special_tokens_to_add()
+			special_tokens_count = tokenizer.num_special_tokens_to_add()  # num_added_tokens()  # num_special_tokens_to_add()
 			if len(tokens) > max_seq_length - special_tokens_count:
 				tokens = tokens[: (max_seq_length - special_tokens_count)]
 				label_ids = label_ids[: (max_seq_length - special_tokens_count)]
@@ -141,6 +144,7 @@ def convert_examples_to_features(
 			input_mask += [0] * padding_length
 			segment_ids += [0] * padding_length
 			label_ids += [pad_token_label_id] * padding_length
+			sequence_id = example.id
 
 			assert len(input_ids) == max_seq_length
 			assert len(input_mask) == max_seq_length
@@ -157,7 +161,8 @@ def convert_examples_to_features(
 				logger.info("label_ids: %s", " ".join([str(x) for x in label_ids]))
 
 			features.append(
-				InputFeatures(input_ids=input_ids, attention_mask=input_mask, token_type_ids=segment_ids,
+				InputFeatures(sequence_id=sequence_id, input_ids=input_ids, attention_mask=input_mask,
+							  token_type_ids=segment_ids,
 							  label_ids=label_ids)
 			)
 	else:
@@ -186,6 +191,7 @@ def convert_examples_to_features(
 			)
 
 			label_id = label_map[example.label]
+			sequence_id = example.id
 
 			if ex_index < 5:
 				logger.info("*** Example ***")
@@ -197,7 +203,7 @@ def convert_examples_to_features(
 
 			features.append(
 				InputFeatures(
-					input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, label_id=label_id
+					sequence_id=sequence_id, input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, label_id=label_id
 				)
 			)
 
@@ -247,7 +253,7 @@ class NerProcessor(DataProcessor):
 			data.append((sentence, label))
 			sentence = []
 			label = []
-		return data
+		return data[:10000]
 
 	def get_train_examples(self, data_dir):
 		return self._create_examples(
@@ -271,10 +277,11 @@ class NerProcessor(DataProcessor):
 	def _create_examples(self, lines, set_type):
 		examples = []
 		for i, (sentence, labels) in enumerate(lines):
+			id = i+1
 			guid = "%s-%s" % (set_type, i + 1)
 			text = ' '.join(sentence)
 			labels = labels
-			examples.append(InputExample(guid=guid, text_a=text, text_b=None, labels=labels))
+			examples.append(InputExample(id=id, guid=guid, text_a=text, text_b=None, labels=labels))
 		return examples
 
 
@@ -322,10 +329,11 @@ class PosProcessor(DataProcessor):
 	def _create_examples(self, lines, set_type):
 		examples = []
 		for i, (sentence, labels) in enumerate(lines):
+			id = i
 			guid = "%s-%s" % (set_type, i)
 			text = ' '.join(sentence)
 			labels = labels
-			examples.append(InputExample(guid=guid, text_a=text, text_b=None, labels=labels))
+			examples.append(InputExample(id=id, guid=guid, text_a=text, text_b=None, labels=labels))
 		return examples
 
 
@@ -353,10 +361,11 @@ class ColaProcessor(DataProcessor):
 		"""Creates examples for the training and dev sets."""
 		examples = []
 		for (i, line) in enumerate(lines):
+			id = i
 			guid = "%s-%s" % (set_type, i)
 			text_a = line[3]
 			label = line[1]
-			examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+			examples.append(InputExample(id=id, guid=guid, text_a=text_a, text_b=None, label=label))
 		return examples
 
 
@@ -383,11 +392,12 @@ class MrpcProcessor(DataProcessor):
 		for (i, line) in enumerate(lines):
 			if i == 0:
 				continue
+			id = i
 			guid = "%s-%s" % (set_type, i)
 			text_a = line[3]
 			text_b = line[4]
 			label = line[0]
-			examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+			examples.append(InputExample(id=id, guid=guid, text_a=text_a, text_b=text_b, label=label))
 		return examples
 
 
@@ -417,11 +427,12 @@ class RteProcessor(DataProcessor):
 		for (i, line) in enumerate(lines):
 			if i == 0:
 				continue
+			id = line[0]
 			guid = "%s-%s" % (set_type, line[0])
 			text_a = line[1]
 			text_b = line[2]
 			label = line[-1]
-			examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+			examples.append(InputExample(id=id, guid=guid, text_a=text_a, text_b=text_b, label=label))
 		return examples
 
 

@@ -1,0 +1,5 @@
+torch==1.7.0+cu101
+transformers==4.1.0.dev0
+seqeval==1.2.2
+conllu==4.2.1
+tqdm==4.41.1

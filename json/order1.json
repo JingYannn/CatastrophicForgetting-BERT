@@ -19,7 +19,7 @@
 		"save_steps": 500,
 		"output_mode" : "classification"
 	},
-	"rte": 
+	"ner": 
 	{
 		"learning_rate": 3e-5,
 		"weight_decay" : 0.01,

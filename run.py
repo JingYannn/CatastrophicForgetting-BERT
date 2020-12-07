@@ -54,6 +54,7 @@ def save_model(args, task_num, model):
 
 
 def load_examples(args, task, tokenizer, evaluate=False):
+	# print(task)
 	processor = task_processors[task]()
 	logger.info("Creating features from dataset file at %s", args.data_dir)
 	label_list = processor.get_labels()
@@ -71,15 +72,16 @@ def load_examples(args, task, tokenizer, evaluate=False):
 	)
 
 	# Convert to Tensors and build dataset
+	all_sequence_id = torch.tensor([f.sequence_id for f in features], dtype=torch.long)
 	all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
 	all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
 	all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
 	if task == "ner" or task == "pos":
 		all_label_ids = torch.tensor([f.label_ids for f in features], dtype=torch.long)
-		dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_label_ids)
+		dataset = TensorDataset(all_sequence_id, all_input_ids, all_attention_mask, all_token_type_ids, all_label_ids)
 	else:
 		all_label_id = torch.tensor([f.label_id for f in features], dtype=torch.long)
-		dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_label_id)
+		dataset = TensorDataset(all_sequence_id, all_input_ids, all_attention_mask, all_token_type_ids, all_label_id)
 	return dataset
 
 
@@ -136,7 +138,7 @@ def train(args, train_dataset, all_tasks, task_num, model, models, tokenizer, to
 			model.train()
 			batch = tuple(t.to(args.device) for t in batch)
 
-			inputs = {"input_ids": batch[0], "attention_mask": batch[1], "token_type_ids": batch[2], "labels": batch[3]}
+			inputs = {"input_ids": batch[1], "attention_mask": batch[2], "token_type_ids": batch[3], "labels": batch[4]}
 			outputs = model(**inputs)
 			loss = outputs[0]  # see doc: https://huggingface.co/transformers/v3.1.0/model_doc/bert.html#bertforsequenceclassification
 
@@ -250,22 +252,25 @@ def evaluate(args, model, task, tokenizer, accuracy_matrix, train_task_num, curr
 	nb_eval_steps = 0
 	preds = None
 	out_label_ids = None
+	indexes = None
 
 	for batch in tqdm(eval_dataloader, desc="Evaluating"):
 		model.eval()
 		batch = tuple(t.to(args.device) for t in batch)
 
 		with torch.no_grad():
-			inputs = {"input_ids": batch[0], "attention_mask": batch[1], "token_type_ids": batch[2], "labels": batch[3]}
+			inputs = {"input_ids": batch[1], "attention_mask": batch[2], "token_type_ids": batch[3], "labels": batch[4]}
 			outputs = model(**inputs)
 			tmp_eval_loss, logits = outputs[:2]
 			eval_loss += tmp_eval_loss.item()
 		nb_eval_steps += 1
 		if preds is None:
 			preds = logits.detach().cpu().numpy()
+			indexes = batch[0].detach().cpu().numpy()
 			out_label_ids = inputs["labels"].detach().cpu().numpy()
 		else:
 			preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
+			indexes = np.append(indexes, batch[0].detach().cpu().numpy(), axis=0)
 			out_label_ids = np.append(out_label_ids, inputs["labels"].detach().cpu().numpy(), axis=0)
 
 	eval_loss = eval_loss / nb_eval_steps
@@ -277,12 +282,13 @@ def evaluate(args, model, task, tokenizer, accuracy_matrix, train_task_num, curr
 		tags_vals = task_processors[task]().get_labels()
 
 		label_map = {i: label for i, label in enumerate(tags_vals)}
-		print(label_map)
 
+		index_list = [] * out_label_ids.shape[0]
 		out_label_list = [[] for _ in range(out_label_ids.shape[0])]
 		preds_list = [[] for _ in range(out_label_ids.shape[0])]
 
 		for i in range(out_label_ids.shape[0]):
+			index_list.append(indexes[i])
 			for j in range(out_label_ids.shape[1]):
 				if out_label_ids[i, j] != pad_token_label_id:
 					out_label_list[i].append(label_map[out_label_ids[i][j]])
@@ -298,32 +304,25 @@ def evaluate(args, model, task, tokenizer, accuracy_matrix, train_task_num, curr
 				"classification report": classification_report(out_label_list, preds_list),
 			}
 
+			sequence_lens = []
+
 			if train_task_num == 0:
 				eval_result_file = os.path.join(args.output_dir, "eval_results_" + str(task) + "1" + ".txt")
 			else:
 				eval_result_file = os.path.join(args.output_dir, "eval_results_" + str(task) + "2" + ".txt")
 			with open(eval_result_file, "w") as writer:
 				writer.write("index\tlabel\tprediction\n")
-				for index1, (item1, item2) in enumerate(zip(out_label_list, preds_list)):
+				for index1, (item0, item1, item2) in enumerate(zip(index_list, out_label_list, preds_list)):
 					for index2, (label, pred) in enumerate(zip(item1, item2)):
-						print(label, pred)
-						if label != pad_token_label_id and pred != pad_token_label_id:
+						if label != pad_token_label_id:
 							if index2 == 0:
-								# label = label_map[label]
-								# pred = label_map[pred]
-								writer.write(f"{index1}\t{label}\t{pred}\n")
+								writer.write(f"{item0}\t{label}\t{pred}\n")
 							else:
-								# label = label_map[label]
-								# pred = label_map[pred]
 								writer.write(f"\t{label}\t{pred}\n")
+					sequence_lens.append(index2+1)
 					writer.write("\n")
+				writer.write(str(sum(sequence_lens)/len(sequence_lens)))
 			writer.close()
-
-				# for index, (item1, item2) in enumerate(zip(out_label_ids, preds)):
-				# 	item1 = label_map[str(item1)]
-				# 	item2 = label_map[str(item2)]
-				# 	writer.write(f"{index}\t{item1}\t{item2}\n")
-			# writer.close()
 
 		elif task == "pos":
 			results = {
@@ -333,14 +332,6 @@ def evaluate(args, model, task, tokenizer, accuracy_matrix, train_task_num, curr
 				"recall": recall_score(out_label_list, preds_list),
 				"f1": f1_score(out_label_list, preds_list),
 			}
-			# eval_result_file = os.path.join(args.output_dir, "eval_results_" + str(task) + ".txt")
-			# with open(eval_result_file, "w") as writer:
-			# 	writer.write("index\tlabel\tprediction\n")
-			# 	for index, (item1, item2) in enumerate(zip(preds, out_label_ids)):
-			# 		item1 = label_map[str(item1)]
-			# 		item2 = label_map[str(item2)]
-			# 		writer.write(f"{index}\t{item1}\t{item2}\n")
-			# writer.close()
 
 		result = results["acc"]
 
@@ -353,22 +344,25 @@ def evaluate(args, model, task, tokenizer, accuracy_matrix, train_task_num, curr
 
 		# Log evaluation result for the first task CoLA
 		if task == "cola":
+			# index_list = [] * out_label_ids.shape[0]
+			# for i in range(out_label_ids.shape[0]):
+			# 	index_list.append(indexes[i])
 			tags_vals = task_processors[task]().get_labels()
 			label_map = {}
 			for i, label in enumerate(tags_vals):
 				label_map[label] = i
 
-			# if train_task_num == 0:
-			# 	eval_result_file = os.path.join(args.output_dir, "eval_results_" + str(task) + "1" + ".txt")
-			# else:
-			# 	eval_result_file = os.path.join(args.output_dir, "eval_results_" + str(task) + "2" + ".txt")
-			# with open(eval_result_file, "w") as writer:
-			# 	writer.write("index\tlabel\tprediction\n")
-			# 	for index, (item1, item2) in enumerate(zip(out_label_ids, preds)):
-			# 		item1 = label_map[str(item1)]
-			# 		item2 = label_map[str(item2)]
-			# 		writer.write(f"{index}\t{item1}\t{item2}\n")
-			# writer.close()
+			if train_task_num == 0:
+				eval_result_file = os.path.join(args.output_dir, "eval_results_" + str(task) + "1" + ".txt")
+			else:
+				eval_result_file = os.path.join(args.output_dir, "eval_results_" + str(task) + "2" + ".txt")
+			with open(eval_result_file, "w") as writer:
+				writer.write("index\tlabel\tprediction\n")
+				for index, (item0, item1, item2) in enumerate(zip(indexes, out_label_ids, preds)):
+					item1 = label_map[str(item1)]
+					item2 = label_map[str(item2)]
+					writer.write(f"{item0}\t{item1}\t{item2}\n")
+			writer.close()
 
 		if task == 'cola':
 			result = result['mcc']
