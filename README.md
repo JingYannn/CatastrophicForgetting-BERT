@@ -5,8 +5,6 @@ CF problem in BERT. Support contiual fine-tuning BERT on sequence classification
 
 ### Experiment1 : NER(10000) -> CoLA -> MRPC
 
-- **Result**
-
 ##### Accuracy Matrix
 
 | CoNLL-2003  | CoLA  | MRPC |
@@ -38,8 +36,6 @@ CF problem in BERT. Support contiual fine-tuning BERT on sequence classification
 - **cnt4** : how many times is each label correctly predicted in the second time but uncorrectly in the first time? [76, 16, 4, 1, 1, 5, 16, 2, 0]
 
 ### Experiment2: CoLA -> MRPC -> NER
-
-- **Result**
 
 ##### Accuracy Matrix
 
