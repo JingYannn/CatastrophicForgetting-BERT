@@ -68,6 +68,40 @@ CF problem in BERT. Support contiual fine-tuning BERT on sequence classification
   - **cnt4_0** : how many times is label '0' are learned? => 0
   - **cnt4_1** : how many times is label '1' are learned? => **47**
 
+### Experiment3: CoLA -> MRPC -> UD(POS)
+
+##### Accuracy Matrix
+
+| CoLA  | MRPC  | UD |
+| :------------ |:---------------:| -----:|
+| 0.578641      | 0.6838235  | 0.0393673 |
+| 0.5548848      | 0.8235294        |   0.0428605 |
+| 0.314600 | 0.7328431        |     0.9685219 |
+
+
+##### Transfer Matrix
+
+| CoLA  | MRPC  | UD |
+| :------------ |:---------------:| -----:|
+| 0.      | -0.1397059  | -0.9291546 |
+| -0.0237568      | 0.        |   -0.9256614 |
+| -0.2640415 | -0.0906863        |    0. |
+ 
+> CoLA's label list: label 0(ungrammatical), label 1(grammatical)
+
+- **cnt1** : sequences predicted correctly in the first time => 864
+
+- **cnt2** : sequences predicted correctly in the second time => 772
+
+- **cnt3** : sequences predicted correctly in the first time but predicted uncorrectly in the second time (forget) => 139
+  - **cnt3_0** : how many times the label '0' are forgot? => **119**
+  - **cnt3_1** : how many times the label '1' are forgot? => 20
+
+- **cnt4** : sequences predicted correctly in the second time but predicted uncorrectly in the first time => 47
+  - **cnt4_0** : how many times is label '0' are learned? => 11
+  - **cnt4_1** : how many times is label '1' are learned? => **36**
+
+
 ## Package
 - python 3.6.9
 - PyTorch 1.7.0+cu101
