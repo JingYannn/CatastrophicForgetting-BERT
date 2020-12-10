@@ -27,13 +27,13 @@ CF problem in BERT. Support contiual fine-tuning BERT on sequence classification
 
 > avg. sequence length = 15.797846153846153, select the first 10000 sequences from the train set to do fine-tuning 
 
-- **cnt1** : how many times is each label correctly predicted in the first time? [42568, 836, 286, 1812, 1287, 1258, 682, 1781, 233]
+- **cnt1** : how many times is the label correctly predicted in the first time? [42568, 836, 286, 1812, 1287, 1258, 682, 1781, 233]
 
-- **cnt2** : how many times is each label correctly predicted in the second time? [42537, 712, 240, 1176, 1168, 1144, 670, 1516, 199]
+- **cnt2** : how many times is the label correctly predicted in the second time? [42537, 712, 240, 1176, 1168, 1144, 670, 1516, 199]
 
-- **cnt3** : how many times is each label correctly predicted in the first time but uncorrectly in the second time? [107, 140, 50, **637**, 120, 119, 28, 267, 34]
+- **cnt3** : how many times is the label correctly predicted in the first time but uncorrectly in the second time? [107, 140, 50, **637**, 120, 119, 28, 267, 34]
 
-- **cnt4** : how many times is each label correctly predicted in the second time but uncorrectly in the first time? [76, 16, 4, 1, 1, 5, 16, 2, 0]
+- **cnt4** : how many times is the label correctly predicted in the second time but uncorrectly in the first time? [76, 16, 4, 1, 1, 5, 16, 2, 0]
 
 ### Experiment2: CoLA -> MRPC -> NER
 
@@ -61,8 +61,8 @@ CF problem in BERT. Support contiual fine-tuning BERT on sequence classification
 - **cnt2** : sequences predicted correctly in the second time => 789
 
 - **cnt3** : sequences predicted correctly in the first time but predicted uncorrectly in the second time (forget) => 118
-  - **cnt3_0** : how many times is label '0' are forgot? => **117**
-  - **cnt3_1** : how many times is label '1' are forgot? => 1
+  - **cnt3_0** : how many times the label '0' are forgot? => **117**
+  - **cnt3_1** : how many times the label '1' are forgot? => 1
 
 - **cnt4** : sequences predicted correctly in the second time but predicted uncorrectly in the first time => 47
   - **cnt4_0** : how many times is label '0' are learned? => 0
