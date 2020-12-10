@@ -1,7 +1,7 @@
 # CatastrophicForgetting-BERT
 CF problem in BERT. Support contiual fine-tuning BERT on sequence classification tasks(ColA, MRPC and RTE) and token classification tasks(CoNLL-2003, UD).
 
-## Compare the prediction results of CoLA after continual fine-tuning
+## Compare the prediction results of the first task after continual fine-tuning
 
 ### Experiment1 : NER(10000) -> CoLA -> MRPC
 
