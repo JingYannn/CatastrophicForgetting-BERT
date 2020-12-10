@@ -9,11 +9,11 @@
 # mv data/RTE/ data/rte/
 python3 run.py \
 --data_dir "data" \
---task_params "ner.json" \
+--task_params "order1.json" \
 --cuda \
 --do_lower_case \
 --model_name_or_path "bert-base-uncased" \
 --output_dir "out" \
 --train_batch_size 32 \
---num_train_epochs 1 \
+--num_train_epochs 5 \
 --seed 42
