@@ -107,6 +107,37 @@ CF problem in BERT. Support contiual fine-tuning BERT on sequence classification
   - **cnt4_0** : how many times is label '0' are learned? => 11, 0.03
   - **cnt4_1** : how many times is label '1' are learned? => **36**, 0.05
 
+### Experiment4 : NER -> MNLI
+
+##### Result Matrix
+
+| CoNLL-2003 (F1) | MNLI (ACC) | 
+| :------------ |:---------------:|
+| 0.9473067      | 0.3552725  | 
+| 0.6580307     | 0.8366786        |  
+
+##### Transfer Matrix
+
+| CoNLL-2003 (F1) | MNLI (ACC) | 
+| :------------ |:---------------:|
+| 0.      | -0.4814061  | 
+| -0.289276     | 0.        | 
+
+> Explanation: 
+
+> CoNLL-2003 's label lists: "O", "B-MISC", "I-MISC", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC";
+
+> Frequency of each label in dev set: [42746, 922, 346, 1839, 1304, 1341, 751, 1837, 257]
+
+> avg. sequence length = 15.797846153846153, select all sequences from the train set to do fine-tuning 
+
+- **cnt1** : how many times is the label correctly predicted in the first time? [42589, 834, 291, 1812, 1289, 1257, 690, 1786, 236]
+
+- **cnt2** : how many times is the label correctly predicted in the second time? [39261, 743, 273, 1755, 1281, 1139, 586, 1701, 101]
+
+- **cnt3** : how many times is the label correctly predicted in the first time but uncorrectly in the second time? [3356, 117, 34, 67, 13, 132, 116, 105, 136], [0.0785, 0.1269, 0.0983, 0.0364, 0.01, 0.0984, 0.1545, 0.0572, 0.5292]
+
+- **cnt4** : how many times is the label correctly predicted in the second time but uncorrectly in the first time? [28, 26, 16, 10, 5, 14, 12, 20, 1]
 
 ## Package
 - python 3.6.9
@@ -130,6 +161,4 @@ Please use `run_cl.sh` to fine-tune BERT on several tasks sequentially. The orde
 
 ## TODO
 
-- self training.
 
-- few-shot learning?
